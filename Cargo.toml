@@ -1,0 +1,9 @@
+[package]
+name = "sigmaos_guide_troubleshooting"
+version = "0.1.0"
+edition = "2021"
+description = "Troubleshooting manual and system diagnostic report library in SigmaOS.wiki"
+
+[lib]
+name = "sigmaos_guide_troubleshooting"
+path = "src/lib.rs"

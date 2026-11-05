@@ -1,0 +1,16 @@
+[component]
+name = "SigmaOS-guide-troubleshooting"
+tier = 3
+stability = "scaffold"
+language = "rust"
+description = "Troubleshooting manual and system diagnostic report library in SigmaOS.wiki"
+upstream = ["https://github.com/linuxmint/mintreport"]
+
+[contract]
+provides = ["troubleshooting-handbook", "diagnostic-collector", "troubleshooting-guide-meta"]
+depends_on = []
+
+[maturity]
+status = "Scaffold"
+test_evidence = "Compiles and passes AAA unit tests"
+next_milestone = "Hardware and runtime integration"
