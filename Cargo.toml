@@ -1,10 +1,15 @@
 [package]
-name = "sigmaos_guide_troubleshooting"
+name = "SigmaOS-guide-troubleshooting"
 version = "0.1.0"
 edition = "2021"
-license = "MIT"
-description = "SigmaOS guide-troubleshooting component inspired by Linux Mint / Omarchy / Arch Linux."
+license = "Apache-2.0"
+description = "SigmaOS sigmaos_guide_troubleshooting component"
 
 [lib]
 name = "sigmaos_guide_troubleshooting"
 path = "src/lib.rs"
+
+[dependencies]
+thiserror = "1"
+
+[dev-dependencies]

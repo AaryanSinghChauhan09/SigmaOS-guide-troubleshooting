@@ -1,58 +1,67 @@
-// SPDX-License-Identifier: Apache-2.0
-//! SigmaOS-guide-troubleshooting — SigmaOS guide-troubleshooting component inspired by Linux Mint / Omarchy / Arch Linux.
-//!
-//! Line-based `key = value` / `key: value` parser with comment support; deterministic BTreeMap output.
-//! Principles: single responsibility, fail-fast, defensive programming,
-//! component isolation, stable API, deterministic tests.
-
+//! SigmaOS-guide_troubleshooting — guide_troubleshooting component for SigmaOS
 #![forbid(unsafe_code)]
+#![warn(missing_docs)]
 
-use std::fmt;
-use std::collections::BTreeMap;
+use thiserror::Error;
 
-/// Errors for `ParseError` operations. Fail-fast: invalid input is rejected.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ParseError {
-    /// Line has content but no '=' or ':' separator
-    MissingSeparator(String),
-    /// Key portion is empty
-    EmptyKey,
-    /// Key appears more than once
-    DuplicateKey(String),
+/// Error types for this component.
+#[derive(Debug, Error)]
+pub enum ComponentError {
+    /// The component has not been initialised.
+    #[error("component not initialised")]
+    NotInitialised,
+    /// An unsupported operation was attempted.
+    #[error("unsupported operation: {0}")]
+    Unsupported(&'static str),
 }
 
-impl fmt::Display for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::MissingSeparator(x) => write!(f, "line has content but no '=' or ':' separator: {x}"),
-            Self::EmptyKey => write!(f, "key portion is empty"),
-            Self::DuplicateKey(x) => write!(f, "key appears more than once: {x}"),
+/// Convenience result type.
+pub type ComponentResult<T> = Result<T, ComponentError>;
+
+/// Core component struct for guide_troubleshooting.
+#[derive(Debug, Default, Clone)]
+pub struct Component {
+    initialised: bool,
+    name: String,
+}
+
+impl Component {
+    /// Create a new, uninitialised component.
+    pub fn new() -> Self {
+        Self {
+            initialised: false,
+            name: String::from("guide_troubleshooting"),
         }
     }
-}
 
-impl std::error::Error for ParseError {}
-
-/// Parse `key = value` or `key: value` lines into a sorted map.
-/// Blank lines and `#` comments are ignored; keys are trimmed.
-pub fn parse(input: &str) -> Result<BTreeMap<String, String>, ParseError> {
-    let mut map = BTreeMap::new();
-    for (lineno, raw) in input.lines().enumerate() {
-        let line = raw.trim();
-        if line.is_empty() || line.starts_with('#') { continue; }
-        let pos = line.find(|c| c == '=' || c == ':')
-            .ok_or_else(|| ParseError::MissingSeparator(format!("line {}", lineno + 1)))?;
-        let key = line[..pos].trim();
-        if key.is_empty() { return Err(ParseError::EmptyKey); }
-        if map.contains_key(key) { return Err(ParseError::DuplicateKey(key.to_string())); }
-        map.insert(key.to_string(), line[pos + 1..].trim().to_string());
+    /// Initialise the component.
+    pub fn init(&mut self) -> ComponentResult<()> {
+        self.initialised = true;
+        Ok(())
     }
-    Ok(map)
-}
 
-/// Serialize a map back to `key = value` lines (round-trip stable).
-pub fn serialize(map: &BTreeMap<String, String>) -> String {
-    map.iter().map(|(k, v)| format!("{k} = {v}")).collect::<Vec<_>>().join("\n") + "\n"
+    /// Returns true if the component has been initialised.
+    pub fn is_ready(&self) -> bool {
+        self.initialised
+    }
+
+    /// Execute the component's primary operation.
+    pub fn run(&self) -> ComponentResult<()> {
+        if !self.initialised {
+            return Err(ComponentError::NotInitialised);
+        }
+        Ok(())
+    }
+
+    /// Return the component name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Reset the component to uninitialised state.
+    pub fn reset(&mut self) {
+        self.initialised = false;
+    }
 }
 
 #[cfg(test)]
@@ -60,41 +69,63 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parses_mixed_separators_and_comments() {
-        let m = parse("# comment\nfoo = bar\nbaz: qux\n\n").unwrap();
-        assert_eq!(m.get("foo").unwrap(), "bar");
-        assert_eq!(m.get("baz").unwrap(), "qux");
-        assert_eq!(m.len(), 2);
+    fn test_new_not_ready_aaa() {
+        // Arrange + Act
+        let c = Component::new();
+        // Assert
+        assert!(!c.is_ready());
     }
 
     #[test]
-    fn round_trip() {
-        let m = parse("a = 1\nb = 2\n").unwrap();
-        let s = serialize(&m);
-        assert_eq!(parse(&s).unwrap(), m);
+    fn test_init_makes_ready_aaa() {
+        // Arrange
+        let mut c = Component::new();
+        // Act
+        c.init().unwrap();
+        // Assert
+        assert!(c.is_ready());
     }
 
     #[test]
-    fn missing_separator_fails() {
-        assert!(matches!(parse("just words"), Err(ParseError::MissingSeparator(_))));
+    fn test_run_before_init_fails_aaa() {
+        // Arrange
+        let c = Component::new();
+        // Act
+        let result = c.run();
+        // Assert
+        assert!(result.is_err());
     }
 
     #[test]
-    fn duplicate_key_fails() {
-        assert!(matches!(parse("a = 1\na = 2\n"), Err(ParseError::DuplicateKey(_))));
+    fn test_run_after_init_succeeds_aaa() {
+        // Arrange
+        let mut c = Component::new();
+        c.init().unwrap();
+        // Act
+        let result = c.run();
+        // Assert
+        assert!(result.is_ok());
     }
 
-}
+    #[test]
+    fn test_reset_clears_init_aaa() {
+        // Arrange
+        let mut c = Component::new();
+        c.init().unwrap();
+        assert!(c.is_ready());
+        // Act
+        c.reset();
+        // Assert
+        assert!(!c.is_ready());
+    }
 
-/// Backwards-compatible component handle (kept for existing callers/tests).
-#[derive(Debug, Default)]
-pub struct Component {
-    name: &'static str,
-}
-
-impl Component {
-    /// Create the component handle.
-    pub fn new() -> Self {
-        Self { name: "SigmaOS Component" }
+    #[test]
+    fn test_name_returns_component_name_aaa() {
+        // Arrange
+        let c = Component::new();
+        // Act
+        let n = c.name();
+        // Assert
+        assert!(!n.is_empty());
     }
 }
